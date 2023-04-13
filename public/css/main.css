@@ -1,0 +1,221 @@
+.message .avatar {
+	margin-right: 16px;
+	margin-left: 16px;
+}
+
+.message.self .message-sender {
+	text-align: right;
+}
+
+.message .message-sender {
+	text-align: left;
+}
+
+.tippy-tooltip {
+	background-color: transparent;
+}
+
+.tippy-content {
+	padding: 0;
+}
+
+.toastify {
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	flex-direction: row-reverse;
+	padding: 28px 40px 28px 10px;
+	min-width: 240px;
+	justify-content: start;
+}
+
+.toastify .toast-close {
+	position: absolute;
+	font-size: 16px;
+	top: 8px;
+	right: 1px;
+}
+
+.toastify .toastify-avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	margin-right: 8px;
+}
+
+.toastify::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 5px;
+}
+
+.toastify.error::after {
+	background: #e74c3c;
+}
+
+.toastify.warning::after {
+	background: #f1c40f;
+}
+
+.toastify.success::after {
+	background: #07bc0c;
+}
+
+.message-item .seen-icon {
+	display: none;
+}
+
+.message-item.seen .seen-icon {
+	display: inline;
+}
+
+.emoji-icon {
+	width: 20px;
+	height: 20px;
+}
+.shared-image-list {
+	flex-wrap: wrap;
+	padding-top: 12px;
+}
+
+.shared-image-list .col {
+	min-width: 160px;
+}
+
+.message .shared-image-list a {
+	width: 120px;
+	height: 100px;
+}
+
+.message .shared-image-list img {
+	width: 100%;
+	object-fit: cover;
+	height: 100%;
+}
+
+.message .message-content .shared-image-list {
+	max-width: 408px;
+}
+
+.message {
+	flex-direction: row;
+}
+
+.message.self {
+	justify-content: flex-end;
+}
+
+.message.self .avatar {
+	order: 2;
+}
+
+.message .avatar {
+	margin-top: auto;
+}
+
+.message .message-item + .message-item {
+	margin-top: 6px;
+}
+
+.message .message-content {
+	padding: 12px;
+}
+
+:is(.modal-dialog.forward, .modal-dialog.add-member) {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+:is(.modal-dialog.forward, .modal-dialog.add-member) .modal-content {
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+}
+
+:is(.modal-dialog.forward, .modal-dialog.add-member) .modal-body {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+:is(.modal-dialog.forward, .modal-dialog.add-member)
+	:is(.modal-body form[name='forwardMemberForm'], .modal-body form[name='addMemberForm']) {
+	flex: 1;
+	overflow: auto;
+	margin-top: 12px;
+}
+
+:is(.modal-dialog.forward, .modal-dialog.add-member) .modal-body .list-unstyled .card.contact-item {
+	border: none;
+}
+
+:is(.modal-dialog.forward, .modal-dialog.add-member) .modal-body .list-unstyled .card.contact-item .card-body {
+	flex: 1;
+	overflow: auto;
+	padding: 6px 0;
+}
+
+::-webkit-scrollbar,
+::-webkit-scrollbar {
+	width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+	border-radius: 10px;
+	background: #6b6c6d;
+}
+
+.user-card .text-online {
+	display: none;
+}
+
+.user-card.online .text-online {
+	display: flex;
+	align-items: center;
+}
+
+#chatInfoWrap .contact-item {
+	background-color: transparent;
+	border: none;
+	box-shadow: none;
+}
+
+#chatInfoWrap .contact-item .card-body {
+	padding: 8px 0;
+}
+
+.message.self .avatar {
+	display: none;
+}
+
+.text-sm {
+	font-size: 14px;
+}
+
+.message-system {
+	padding: 4px 16px !important;
+	border-radius: 1000px !important;
+	background: #343746 !important;
+}
+
+.dot {
+	position: absolute;
+    top: -5px;
+    right: -5px;
+    background: red;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border-radius: 50%;
+	z-index: 1;
+}
+
+.nav-item {
+	position: relative;
+}
