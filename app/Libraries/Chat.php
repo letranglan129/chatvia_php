@@ -82,10 +82,6 @@ class Chat implements MessageComponentInterface
 
     public function onMessage(ConnectionInterface $from, $msg)
     {
-
-        //         -- Thông báo rời nhóm
-        // -- Chuyển nhóm trưởng
-
         $data = json_decode($msg, true);
         CLI::print("\n\n" . json_encode($data) . "\n\n");
 
@@ -144,16 +140,20 @@ class Chat implements MessageComponentInterface
                             $userId = $data['userId'];
                             $friendId = $data['friendId'];
                             $blockedUser = new BlockedUser();
+                            $groupMember = new GroupMember();
 
                             $blockedUser->where("user_id = {$userId} and blocked_user_id = {$friendId}");
                             $blockedUser->delete();
+
+                            $id = $groupMember->select("group_members.group_id")->join("groups", "groups.id = group_members.group_id", 'inner')->where("user_id IN ({$userId}, {$friendId}) and type = 'dou'")->groupBy("group_members.group_id")->having("COUNT(DISTINCT user_id) = 2")->orderBy('group_id', 'DESC')->first();
 
                             foreach ($this->clients as $client) {
                                 if (
                                     $client->resourceId == $from->resourceId || (isset($friend) && $client->resourceId == $friend['connectid'])
                                 ) {
                                     $client->send(json_encode([
-                                        'event' => 'onUnblockUser'
+                                        'event' => 'onUnblockUser',
+                                        'groupId' => $id,
                                     ]));
                                 }
                             }
@@ -176,6 +176,7 @@ class Chat implements MessageComponentInterface
                             $userModel = new User();
                             $friendModel = new Friend();
                             $blockedUser = new BlockedUser();
+                            $groupMember = new GroupMember();
 
                             $blockedUser->upsert([
                                 'user_id' => $userId,
@@ -187,12 +188,15 @@ class Chat implements MessageComponentInterface
 
                             $friend = $userModel->find($friendId);
 
+                            $id = $groupMember->select("group_members.group_id")->join("groups", "groups.id = group_members.group_id", 'inner')->where("user_id IN ({$userId}, {$friendId}) and type = 'dou'")->groupBy("group_members.group_id")->having("COUNT(DISTINCT user_id) = 2")->orderBy('group_id', 'DESC')->first();
+
                             foreach ($this->clients as $client) {
                                 if (
                                     $client->resourceId == $from->resourceId || (isset($friend) && $client->resourceId == $friend['connectid'])
                                 ) {
                                     $client->send(json_encode([
-                                        'event' => 'onBlockUser'
+                                        'event' => 'onBlockUser',
+                                        'groupId' =>$id,
                                     ]));
                                 }
                             }
@@ -456,7 +460,7 @@ class Chat implements MessageComponentInterface
                         break;
                     }
 
-                case 'accecptFriend': {
+                case 'acceptFriend': {
                         try {
                             $notifyModel = new Notification();
                             $friendModel = new Friend();
@@ -1322,9 +1326,7 @@ class Chat implements MessageComponentInterface
                                         'userId' => $userId
                                     ]));
                                 }
-                            }
 
-                            foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
                                         'event' => 'onOutGroup',

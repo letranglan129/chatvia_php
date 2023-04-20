@@ -36,7 +36,7 @@
         <!-- Search Input -->
 
         <!-- Segmented Control -->
-        <div class="dropdown m-1  ms-4 d-flex align-items-center justify-content-between">
+        <div class="dropdown m-1  ms-4 me-4 d-flex align-items-center justify-content-between">
             <span>Hiển thị với</span>
             <button class="btn btn-secondary dropdown-toggle btn-sm" type="button" id="dropdown-type-conversation" data-bs-toggle="dropdown" aria-expanded="false">
                 Tất cả

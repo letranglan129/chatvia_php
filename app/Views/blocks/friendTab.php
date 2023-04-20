@@ -29,7 +29,7 @@
         <!-- Search Input -->
         <div class="m-4">
             <form class="input-group" id="form-search">
-                <input type="text" class="form-control form-control-lg form-control-solid" placeholder="Tìm kiếm mọi người" aria-label="Search friends" aria-describedby="search-friends-button" name="q">
+                <input type="search" class="form-control form-control-lg form-control-solid" placeholder="Tìm kiếm mọi người" aria-label="Search friends" aria-describedby="search-friends-button" name="q">
                 <button class="btn btn-secondary btn-lg" type="submit" id="search-friends-button"><i class="ri-search-line"></i></button>
             </form>
         </div>

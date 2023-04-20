@@ -17,7 +17,10 @@ class User extends BaseController
         $qId = $this->request->getVar('id');
         $id = Session::data('user')['id'];
         if (isset($q) && trim($q) != '') {
-            $userResult = $userModel->select("id, email, fullname, phone, connectId, avatar, ( SELECT `status` FROM friends WHERE (user_id = {$id} OR friend_id = {$id}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS `status`, (
+            $userResult = $userModel->select("id, email, fullname, phone, connectId, avatar, ( SELECT `status` FROM friends WHERE (user_id = {$id} OR friend_id = {$id}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS `status`, (SELECT user_id FROM friends
+                WHERE (user_id = {$id} OR friend_id = {$id}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS user_id,
+                (SELECT friend_id FROM friends
+                WHERE (user_id = {$id} OR friend_id = {$id}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS friend_id, (
             select user_id
             FROM blocked_users
             where (user_id = {$id} and blocked_user_id = id) or (user_id = id AND blocked_user_id = {$id})) as blockBy, (
@@ -27,6 +30,9 @@ class User extends BaseController
             ->where("fullname LIKE '%{$q}%' ESCAPE '!' or email LIKE '%{$q}%' ESCAPE '!' or phone LIKE '%{$q}%' ESCAPE '!'")->get()->getResultArray();
             return json_encode($userResult);
         }
+
+
+                
 
         if (isset($qId)) {
             $userModel = new UserModel();

@@ -96,9 +96,8 @@ use App\Libraries\Session;
                 </div>
 
                 <div class="modal-body">
-                    <form class="input-group">
-                        <input type="search" class="form-control form-control-lg form-control-solid" placeholder="Tìm kiếm cuộc trò chuyện" aria-label="Search user" aria-describedby="search-user-button">
-                        <button class="btn btn-secondary btn-lg" type="submit" id="search-user-button"><i class="ri-search-line"></i></button>
+                    <form class="input-group" onsubmit="e => e.preventDefault()">
+                        <input id="search-forward-user" type="search" class="form-control form-control-lg form-control-solid" placeholder="Tìm kiếm cuộc trò chuyện" aria-label="Search user" aria-describedby="search-user-button">
                     </form>
                     <form name="forwardMemberForm">
 
@@ -131,9 +130,8 @@ use App\Libraries\Session;
                 </div>
 
                 <div class="modal-body">
-                    <form class="input-group">
-                        <input type="search" class="form-control form-control-lg form-control-solid" placeholder="Tìm kiếm cuộc trò chuyện" aria-label="Search user" aria-describedby="search-user-button">
-                        <button class="btn btn-secondary btn-lg" type="submit" id="search-user-button"><i class="ri-search-line"></i></button>
+                    <form class="input-group" onsubmit="e => e.preventDefault()">
+                        <input type="search" id="search-add-members" class=" form-control form-control-lg form-control-solid" placeholder="Tìm kiếm cuộc trò chuyện" aria-label="Search user" aria-describedby="search-user-button">
                     </form>
                     <form name="addMemberForm">
 

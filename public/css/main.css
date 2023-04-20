@@ -219,3 +219,10 @@
 .nav-item {
 	position: relative;
 }
+
+.card.contact-item .avatar::before {
+    display: none;
+}
+.card.contact-item.online .avatar::before {
+    display: block;
+}
