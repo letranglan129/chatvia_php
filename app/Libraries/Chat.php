@@ -127,7 +127,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "setOwnerGroup"
                                     ]));
                                 }
                             }
@@ -140,10 +142,13 @@ class Chat implements MessageComponentInterface
                             $userId = $data['userId'];
                             $friendId = $data['friendId'];
                             $blockedUser = new BlockedUser();
+                            $userModel = new User();
                             $groupMember = new GroupMember();
 
                             $blockedUser->where("user_id = {$userId} and blocked_user_id = {$friendId}");
                             $blockedUser->delete();
+
+                            $friend = $userModel->find($friendId);
 
                             $id = $groupMember->select("group_members.group_id")->join("groups", "groups.id = group_members.group_id", 'inner')->where("user_id IN ({$userId}, {$friendId}) and type = 'dou'")->groupBy("group_members.group_id")->having("COUNT(DISTINCT user_id) = 2")->orderBy('group_id', 'DESC')->first();
 
@@ -153,7 +158,7 @@ class Chat implements MessageComponentInterface
                                 ) {
                                     $client->send(json_encode([
                                         'event' => 'onUnblockUser',
-                                        'groupId' => $id,
+                                        'groupId' => $id['group_id'],
                                     ]));
                                 }
                             }
@@ -161,7 +166,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "unlockUser"
                                     ]));
                                 }
                             }
@@ -196,7 +203,7 @@ class Chat implements MessageComponentInterface
                                 ) {
                                     $client->send(json_encode([
                                         'event' => 'onBlockUser',
-                                        'groupId' =>$id,
+                                        'groupId' => $id['group_id'],
                                     ]));
                                 }
                             }
@@ -204,7 +211,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "blockUser"
                                     ]));
                                 }
                             }
@@ -224,8 +233,13 @@ class Chat implements MessageComponentInterface
                             $friendModel->where("(user_id = {$userId} and friend_id = {$friendId}) OR (friend_id = {$userId} AND user_id = {$friendId})");
                             $friendModel->delete();
 
-                            $notifyModel->where("user_id = {$friendId} and from_id = {$userId}");
-                            $notifyModel->delete();
+                            $notifies = $notifyModel->select("*")->where("((user_id = {$userId} and from_id = {$friendId}) OR (user_id = {$friendId} and from_id = {$userId})) AND type = 'friend_request'")->get()->getResultArray();
+
+                            if(isset($notifies)) {
+                                foreach($notifies as $notify) {
+                                    $notifyModel->delete($notify['id']);
+                                }
+                            }
 
                             $friend = $userModel->find($friendId);
 
@@ -240,7 +254,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "cancelRequestAddFriend"
                                     ]));
                                 }
                             }
@@ -251,8 +267,8 @@ class Chat implements MessageComponentInterface
                 case 'getNotifications': {
                         try {
                             $notifyModel = new Notification();
-                            $notifyReaded = $notifyModel->select('notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id, avatar')->from('users')->where("user_id = " . $data['userId'] . " and from_id = users.id")->where('is_readed', '1')->orderBy('created_at', 'DESC')->findAll();
-                            $notifyUnread = $notifyModel->select('notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id, avatar')->from('users')->where("user_id = " . $data['userId'] . " and from_id = users.id")->where('is_readed = 0')->orderBy('created_at', 'DESC')->findAll();
+                            $notifyReaded = $notifyModel->select('notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id, avatar, is_readed')->from('users')->where("user_id = " . $data['userId'] . " and from_id = users.id")->where('is_readed', '1')->orderBy('created_at', 'DESC')->findAll();
+                            $notifyUnread = $notifyModel->select('notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id, avatar, is_readed')->from('users')->where("user_id = " . $data['userId'] . " and from_id = users.id")->where('is_readed = 0')->orderBy('created_at', 'DESC')->findAll();
 
                             foreach ($this->clients as $client) {
                                 if ($client->resourceId == $from->resourceId) {
@@ -267,7 +283,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "getNotifications"
                                     ]));
                                 }
                             }
@@ -295,7 +313,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "readNotify"
                                     ]));
                                 }
                             }
@@ -341,7 +361,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "getFriends"
                                     ]));
                                 }
                             }
@@ -353,6 +375,7 @@ class Chat implements MessageComponentInterface
                         try {
                             $userModel = new User();
                             $groupModel = new Group();
+                            $groupMemberModel = new GroupMember();
                             $messageModel = new Message();
                             $connectIds = array();
 
@@ -366,10 +389,19 @@ class Chat implements MessageComponentInterface
                             $chat_message_id = $messageModel->insert($message);
 
                             $sender_user_data = $userModel->where('id', $data['senderId'])->first();
-
-                            $groupReceiver = $groupModel->where('id', $data['groupId'])->first();
+                            
+                            $group = $groupModel->find($data['groupId']);
 
                             $listUserReceiver = $userModel->select('connectid')->where("id IN (SELECT user_id FROM `groups` JOIN group_members on group_id = `groups`.id WHERE `groups`.id = {$data['groupId']})")->get()->getResultArray();
+
+                            if(isset($group) && $group['type'] == 'dou') {
+                                $userInGroup = $groupMemberModel->select('user_id')->where("group_id = {$data['groupId']} AND user_id != {$data['senderId']}")->first();
+                                $data['groupId'] = $userInGroup['user_id'];
+                            }
+
+                            if (isset($group) && $group['type'] == 'multi') {
+                                $data['groupId'] = $group['id'];
+                            }
 
                             foreach ($listUserReceiver as $user) {
                                 if (isset($user))
@@ -385,6 +417,8 @@ class Chat implements MessageComponentInterface
 
                                 if (in_array($client->resourceId, $connectIds) || $from == $client) {
                                     $data['event'] = 'onNewMessage';
+                                    $data['groupName'] = $group['name'];
+                                    $data['type'] = $group['type'];
                                     $client->send(json_encode($data));
                                 } else {
                                     // $private_chat_object->setStatus('No');
@@ -397,7 +431,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "sendMessage"
                                     ]));
                                 }
                             }
@@ -452,7 +488,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "addFriend"
                                     ]));
                                 }
                             }
@@ -462,9 +500,12 @@ class Chat implements MessageComponentInterface
 
                 case 'acceptFriend': {
                         try {
+                            $groupMember = new GroupMember();
+                            $group = new Group();
                             $notifyModel = new Notification();
                             $friendModel = new Friend();
                             $userModel = new User();
+                            $notifyId = $data["notifyId"];
 
                             $updateFriend = [
                                 'status' => 'accepted'
@@ -482,20 +523,46 @@ class Chat implements MessageComponentInterface
                             $updateNotify = [
                                 'type' => 'new_message',
                                 'payload' => "Bạn và {$sender['fullname']} đã trở thành bạn bè.",
-                                'from_id' => null,
+                                'from_id' => 0,
                             ];
 
                             $friendModel->set($updateFriend);
                             $friendModel->where('user_id', $data['senderId']);
                             $friendModel->where('friend_id', $data['receiverId']);
                             $friendModel->update();
+                            if($notifyId == -1) {
+                                $notify = $notifyModel->where("from_id = {$data['senderId']} and user_id = {$data['receiverId']}")->first();
+                                CLI::print(json_encode($notify));
+                                if(isset($notify)) {
+                                    $notifyId = $notify['id'];
+                                }
+                            }
 
-                            $notifyModel->update($data['notifyId'], $updateNotify);
+                            $notifyModel->update($notifyId, $updateNotify);
                             $newNotifyId =  $notifyModel->insert($newNotify);
 
-                            $updatedNotify = $notifyModel->select('notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id')->from('users')->where("user_id = " . $data['receiverId'] . " and user_id = users.id" . " and notifications.id = {$data['notifyId']}")->first();
+                            $updatedNotify = $notifyModel->select('notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id')->from('users')->where("user_id = " . $data['receiverId'] . " and user_id = users.id" . " and notifications.id = {$notifyId}")->first();
 
                             $newedNotify = $notifyModel->select('notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id')->from('users')->where("user_id = " . $data['senderId'] . " and user_id = users.id" . " and notifications.id = {$newNotifyId}")->first();
+
+                            $id = $groupMember->select("group_members.group_id")->join("groups", "groups.id = group_members.group_id", 'inner')->where("user_id IN ({$data['senderId']}, {$data['receiverId']}) and type = 'dou'")->groupBy("group_members.group_id")->having("COUNT(DISTINCT user_id) = 2")->orderBy('group_id', 'DESC')->first();
+
+                            if (empty($id)) {
+                                $newGroupId = $group->insert([
+                                    'name' => '',
+                                    'type' => 'dou',
+                                ]);
+
+                                $responseData['groupId'] = $newGroupId;
+
+                                $groupMember->insertBatch([[
+                                    'group_id' => $newGroupId,
+                                    'user_id' => $data['senderId']
+                                ], [
+                                    'group_id' => $newGroupId,
+                                    'user_id' => $data['receiverId']
+                                ]]);
+                            }
 
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
@@ -520,7 +587,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "acceptFriend"
                                     ]));
                                 }
                             }
@@ -565,9 +634,9 @@ class Chat implements MessageComponentInterface
                                     $messages = $messageModel->where('group_id', $newGroupId)->get()->getResultArray();
                                 } else {
                                     $responseData['groupId'] = $id['group_id'];
-                                    $messages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at')->join('users', 'messages.sender_id = users.id', 'inner')->where("group_id = {$id['group_id']} and format = 'text' and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$data['senderId']})")->get()->getResultArray();
+                                    $messages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at')->join('users', 'messages.sender_id = users.id', 'inner')->where("group_id = {$id['group_id']} and (format = 'text' or format = 'call') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$data['senderId']})")->get()->getResultArray();
 
-                                    $mediaMessages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at, href, name, size')->join('users', 'messages.sender_id = users.id', 'inner')->join('file_messages', 'messages.id = file_messages.message_id', 'inner')->where("group_id = {$id['group_id']} and format != 'text' and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$data['senderId']})")->get()->getResultArray();
+                                    $mediaMessages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at, href, name, size')->join('users', 'messages.sender_id = users.id', 'inner')->join('file_messages', 'messages.id = file_messages.message_id', 'inner')->where("group_id = {$id['group_id']} and (format = 'image' or format = 'file') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$data['senderId']})")->get()->getResultArray();
 
                                     $files = $fileMessageModel->select('file_messages.*, format, sent_at, group_id, sender_id')->join('messages', 'file_messages.message_id = messages.id', 'inner')->where('group_id', $responseData['groupId'])->where("message_id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$data['senderId']})")->get()->getResultArray();
                                 }
@@ -607,7 +676,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "startChatPrivate"
                                     ]));
                                 }
                             }
@@ -618,6 +689,10 @@ class Chat implements MessageComponentInterface
 
                 case 'getConversation': {
                         try {
+                            $userId = $data["userId"];
+                            if(!isset($userId)) {
+                                return;
+                            }
                             $groupMember = new GroupMember();
                             $messageModel = new Message();
                             $result = array();
@@ -638,13 +713,13 @@ class Chat implements MessageComponentInterface
                                 ->get();
 
                             $groupConversation = $groupMember->select("`groups`.id as groupId, `groups`.`name` as groupName, (SELECT message FROM messages WHERE group_id = group_members.group_id and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$data['userId']}) ORDER BY sent_at DESC  
-                            LIMIT 1) as `message`, type, `desc`, `groups`.avatar as groupAvatar, m.sent_at, m.sender_id, m.fullname, users.avatar as userAvatar, ( SELECT COUNT(*) FROM messages WHERE group_id = group_members.group_id AND messages.id NOT IN ( SELECT message_id FROM deleted_messages WHERE user_id = {$data['userId']} )) AS countMessage")
+                            LIMIT 1) as `message`, type, `desc`, `groups`.avatar as groupAvatar, m.sent_at, m.sender_id, m.fullname, users.avatar as userAvatar, ( SELECT COUNT(*) FROM messages WHERE group_id = group_members.group_id AND messages.id NOT IN ( SELECT message_id FROM deleted_messages WHERE user_id = {$data['userId']} )) AS countMessage,owner")
                                 ->join('groups', 'groups.id = group_members.group_id', 'inner')
                                 ->join('users', 'users.id = group_members.user_id', 'inner')
                                 ->join('messages', 'messages.group_id = groups.id', 'inner')
                                 ->join('(SELECT messages.*, users.fullname FROM messages, users WHERE sender_id = users.id ) AS m', 'm.id = last_message', 'LEFT OUTER')
                                 ->where("user_id = {$data['userId']} and `groups`.id = group_members.group_id and type = 'multi'")
-                                ->groupBy(['groupId', 'groupName', 'message', 'type', 'desc', 'groupAvatar', 'm.sent_at', 'm.sender_id', 'm.fullname', 'userAvatar'])
+                                ->groupBy(['groupId', 'groupName', 'message', 'type', 'desc', 'groupAvatar', 'm.sent_at', 'm.sender_id', 'm.fullname','userAvatar', 'owner'])
                                 ->orderBy('sent_at', 'desc')
                                 ->get()->getResultArray();
 
@@ -668,7 +743,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "getConversation"
                                     ]));
                                 }
                             }
@@ -679,8 +756,10 @@ class Chat implements MessageComponentInterface
                 case 'sentMessage': {
                         try {
                             $viewedMessage = new ViewedMessage();
+                            $fileMessageModel = new FileMessages();
                             $messageModel = new Message();
                             $groupMember = new GroupMember();
+                            $groupModel = new Group();
                             $messagesSeen = $data['messages'];
                             $userId = $data['userId'];
                             $groupId = $data['groupId'];
@@ -688,8 +767,13 @@ class Chat implements MessageComponentInterface
                             $updateMessages = array();
                             $connectIds = array();
                             $tempMessageIdsString = "";
+                            $messages = array();
+                            $mediaMessages = array();
+                            $files = array();
+                            $newMediaMessages = [];
 
                             if ($userId == 0 || empty($messagesSeen)) return;
+                            $group = $groupModel->find($groupId);
 
                             if ($messagesSeen == "all") {
                                 $messagesSeen = $messageModel->select('id')->where('group_id', $groupId)->get()->getResultArray();
@@ -703,9 +787,9 @@ class Chat implements MessageComponentInterface
                                 array_push($messageIds, $message['id']);
                             }
 
-                            if(count($updateMessages) > 0) {
+                            if (count($updateMessages) > 0) {
                                 $viewedMessage->upsertBatch($updateMessages);
-                            } 
+                            }
 
 
                             $userInGroup = $groupMember->from('users')->where("group_id = {$groupId} AND user_id = users.id and users.id != {$data['userId']}")->get()->getResultArray();
@@ -717,21 +801,62 @@ class Chat implements MessageComponentInterface
                                 }
                             }
 
-                            if(count($updateMessages) > 0) {
+                            if (count($updateMessages) > 0) {
                                 $tempMessageIdsString = implode(', ', $messageIds);
                             } else {
                                 $tempMessageIdsString = "0";
                             }
 
-                            
+                            // WEB
+                            // $messages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at')->join('users', 'messages.sender_id = users.id', 'inner')->where("group_id = {$groupId} and messages.id in ({$tempMessageIdsString})")->get()->getResultArray();
 
-                            $messages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at')->join('users', 'messages.sender_id = users.id', 'inner')->where("group_id = {$groupId} and messages.id in ({$tempMessageIdsString})")->get()->getResultArray();
+                            $messages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at')->join('users', 'messages.sender_id = users.id', 'inner')->where("group_id = {$groupId} and format = 'text' and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
+
+                            if(isset($group) && $group['type'] == 'dou') {
+                                $messages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at')->join('users', 'messages.sender_id = users.id', 'inner')->where("group_id = {$groupId} and (format = 'text' or format = 'call') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
+
+                                $newMediaMessages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at, href, name, size')->join('users', 'messages.sender_id = users.id', 'inner')->join('file_messages', 'messages.id = file_messages.message_id', 'inner')->where("group_id = {$groupId} and (format = 'image' or format = 'file') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
+
+                                foreach ($mediaMessages as $mediaMessage) {
+                                    $key = array_search($mediaMessage["message_id"], array_column($newMediaMessages, "message_id"));
+                                    if ($key === false) {
+                                        $mediaMessage["images"] = [["href" => $mediaMessage["href"], "name" => $mediaMessage["name"], "size" => $mediaMessage["size"]]];
+                                        unset($mediaMessage["href"]);
+                                        unset($mediaMessage["size"]);
+                                        unset($mediaMessage["name"]);
+                                        $newMediaMessages[] = $mediaMessage;
+                                    } else {
+                                        $newMediaMessages[$key]["images"][] = ["href" => $mediaMessage["href"], "name" => $mediaMessage["name"], "size" => $mediaMessage["size"]];
+                                    }
+                                }
+                            }
+
+                            if (isset($group) && $group['type'] == 'multi') {
+                                $messages = $messageModel->select("`messages`.*, fullname")->from("users")
+                                ->where("group_id = {$groupId} and `users`.id = sender_id and (format = 'text' or format = 'call') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
+
+                                $mediaMessages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at, href, name, size')->join('users', 'messages.sender_id = users.id', 'inner')->join('file_messages', 'messages.id = file_messages.message_id', 'inner')->where("group_id = {$groupId} and (format = 'image' or format = 'file') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
+
+                                foreach ($mediaMessages as $mediaMessage) {
+                                    $key = array_search($mediaMessage["message_id"], array_column($newMediaMessages, "message_id"));
+                                    if ($key === false) {
+                                        $mediaMessage["images"] = [["href" => $mediaMessage["href"], "name" => $mediaMessage["name"], "size" => $mediaMessage["size"]]];
+                                        unset($mediaMessage["href"]);
+                                        unset($mediaMessage["size"]);
+                                        unset($mediaMessage["name"]);
+                                        $newMediaMessages[] = $mediaMessage;
+                                    } else {
+                                        $newMediaMessages[$key]["images"][] = ["href" => $mediaMessage["href"], "name" => $mediaMessage["name"], "size" => $mediaMessage["size"]];
+                                    }
+                                }
+                            }
+
 
                             foreach ($this->clients as $client) {
                                 if (in_array($client->resourceId, $connectIds)) {
                                     $client->send(json_encode([
                                         'event' => 'onResponseSent',
-                                        'messages' => $messages,
+                                        'messages' => array_merge($messages, $newMediaMessages),
                                         'groupId' => $groupId,
                                     ]));
                                 }
@@ -740,7 +865,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "sentMessage"
                                     ]));
                                 }
                             }
@@ -770,6 +897,12 @@ class Chat implements MessageComponentInterface
 
                                 if (in_array($data['avatar']['type'], $fileTypes) && isset($result)) {
                                     $href = $result['secure_url'];
+                                }
+
+                                if (unlink($file_url)) {
+                                    CLI::print('File đã được xóa.');
+                                } else {
+                                    CLI::print('Không thể xóa file.');
                                 }
                             }
 
@@ -824,13 +957,55 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "createGroup"
                                     ]));
                                 }
                             }
                         }
                         break;
                     }
+
+                case 'getMembersOfGroup': {
+                    try {
+                        $groupMemberModel = new GroupMember();
+                        $userId = $data['userId'];
+                        $groupId = $data['groupId'];
+                        $members = $groupMemberModel->select("users.*, ( SELECT `status` FROM friends WHERE (friends.user_id = {$userId} AND users.id = friends.friend_id) OR (friends.friend_id = {$userId} AND friends.user_id = users.id) LIMIT 1) AS `status`, (SELECT user_id FROM friends
+                WHERE (user_id = {$userId} OR friend_id = {$userId}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS user_id,
+                (SELECT friend_id FROM friends
+                WHERE (user_id = {$userId} OR friend_id = {$userId}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS friend_id, (
+            select user_id
+            FROM blocked_users
+            where (user_id = {$userId} and blocked_user_id = id) or (user_id = id AND blocked_user_id = {$userId}) LIMIT 1) as blockBy, (
+            select blocked_user_id
+            FROM blocked_users
+            where (user_id = {$userId} and blocked_user_id = id) or (user_id = id AND blocked_user_id = {$userId}) LIMIT 1) as blocked_user_id")->from('users')->where('group_id', $groupId)->where('user_id = users.id')->get()->getResultArray();
+
+                        foreach ($this->clients as $client) {
+                            if ($from == $client) {
+                                $client->send(json_encode(
+                                        [
+                                            'event' => 'onGetMembersOfGroup',
+                                            'members' => $members
+                                        ]
+                                ));
+                            }
+                        }
+                        } catch (\Exception $e) {
+                            foreach ($this->clients as $client) {
+                                if ($from == $client) {
+                                    $client->send(json_encode([
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "getMembersOfGroup"
+                                    ]));
+                                }
+                            }
+                        }
+                    break;
+                }
 
                 case 'startChatMulti': {
                         try {
@@ -842,18 +1017,27 @@ class Chat implements MessageComponentInterface
                             $groupMemberModel = new GroupMember();
 
                             $messageOfConversation = $messageModel->select("`messages`.*, fullname")->from("users")
-                                ->where("group_id = {$groupId} and `users`.id = sender_id and format = 'text' and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
+                                ->where("group_id = {$groupId} and `users`.id = sender_id and (format = 'text' or format = 'call') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
 
                             $groupInfo = $groupModel->find($groupId);
 
                             // $files = $fileMessageModel->select('file_messages.*, format, sent_at, group_id, sender_id')->join('messages', 'file_messages.message_id = messages.id', 'inner')->where('group_id', $groupId)->get()->getResultArray();
 
-                            $mediaMessages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at, href, name, size')->join('users', 'messages.sender_id = users.id', 'inner')->join('file_messages', 'messages.id = file_messages.message_id', 'inner')->where("group_id = {$groupId} and format != 'text' and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
+                            $mediaMessages = $messageModel->select('users.*, messages.*, messages.id as message_id, (SELECT viewed_at FROM viewed_messages WHERE viewed_messages.message_id = messages.id LIMIT 1) as viewed_at, href, name, size')->join('users', 'messages.sender_id = users.id', 'inner')->join('file_messages', 'messages.id = file_messages.message_id', 'inner')->where("group_id = {$groupId} and (format = 'image' or format = 'file') and messages.id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
 
 
                             $files = $fileMessageModel->select('file_messages.*, format, sent_at, group_id, sender_id')->join('messages', 'file_messages.message_id = messages.id', 'inner')->where('group_id', $groupId)->where("message_id not in (SELECT message_id FROM deleted_messages WHERE user_id = {$userId})")->get()->getResultArray();
 
-                            $members = $groupMemberModel->select("users.*, ( SELECT `status` FROM friends WHERE (friends.user_id = {$userId} AND users.id = friends.friend_id) OR (friends.friend_id = {$userId} AND friends.user_id = users.id) ) AS `status` ")->from('users')->where('group_id', $groupId)->where('user_id = users.id')->get()->getResultArray();
+                            $members = $groupMemberModel->select("users.*, ( SELECT `status` FROM friends WHERE (friends.user_id = {$userId} AND users.id = friends.friend_id) OR (friends.friend_id = {$userId} AND friends.user_id = users.id) LIMIT 1) AS `status`, (SELECT user_id FROM friends
+                WHERE (user_id = {$userId} OR friend_id = {$userId}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS user_id,
+                (SELECT friend_id FROM friends
+                WHERE (user_id = {$userId} OR friend_id = {$userId}) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS friend_id, (
+            select user_id
+            FROM blocked_users
+            where (user_id = {$userId} and blocked_user_id = id) or (user_id = id AND blocked_user_id = {$userId}) LIMIT 1) as blockBy, (
+            select blocked_user_id
+            FROM blocked_users
+            where (user_id = {$userId} and blocked_user_id = id) or (user_id = id AND blocked_user_id = {$userId}) LIMIT 1) as blocked_user_id")->from('users')->where('group_id', $groupId)->where('user_id = users.id')->get()->getResultArray();
 
                             $groupInfo['members'] = $members;
 
@@ -888,7 +1072,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "startChatMulti"
                                     ]));
                                 }
                             }
@@ -901,11 +1087,15 @@ class Chat implements MessageComponentInterface
                             $messageModel = new Message();
                             $fileMessageModel = new FileMessages();
                             $userModel = new User();
+                            $groupModel = new Group();
+                            $groupMemberModel = new GroupMember();
                             $images = array();
                             $connectIds = array();
                             $others = array();
                             $fileTypes = ['image/jpeg', 'image/png', 'image/gif'];
 
+                            $sender = $userModel->find($data['senderId']);
+                            $group = $groupModel->find($data['groupId']);
                             foreach ($data['files'] as $fileUpload) {
 
                                 list($type, $file) = explode(';', $fileUpload['data']);
@@ -978,12 +1168,25 @@ class Chat implements MessageComponentInterface
                                     array_push($connectIds, $user['connectid']);
                             }
 
+                            if (isset($group) && $group['type'] == 'dou') {
+                                $userInGroup = $groupMemberModel->select('user_id')->where("group_id = {$data['groupId']} AND user_id != {$data['senderId']}")->first();
+                                $data['groupId'] = $userInGroup['user_id'];
+                            }
+
+                            if (isset($group) && $group['type'] == 'multi') {
+                                $data['groupId'] = $group['id'];
+                            }
+
                             foreach ($this->clients as $client) {
                                 if (in_array($client->resourceId, $connectIds) || $from == $client) {
                                     $client->send(json_encode([
                                         'event' => 'onNewMessage',
+                                        'msg' => 'Đã gửi một tệp tin',
                                         'senderId' => $data['senderId'],
+                                        'groupName' => $group['name'],
+                                        'from' => $sender['fullname'],
                                         'groupId' => $data['groupId'],
+                                        'type' => $group['type'],
                                     ]));
                                 } else {
                                     // $private_chat_object->setStatus('No');
@@ -996,7 +1199,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "sendFile"
                                     ]));
                                 }
                             }
@@ -1009,7 +1214,7 @@ class Chat implements MessageComponentInterface
                             $userModel = new User();
                             $friendModel = new Friend();
 
-                            $friends = $friendModel->select('friends.user_id, friends.friend_id, users.*')->join('users', "(friends.user_id = users.id and friends.user_id != {$data['id']}) or (friends.friend_id = users.id and friends.friend_id != {$data['id']})")->where(" (friend_id = {$data['id']} or user_id = {$data['id']} ) and `status` = 'accepted' and id not in (SELECT blocked_user_id FROM blocked_users WHERE user_id = {$data['id']}) and id not in (SELECT user_id FROM blocked_users WHERE blocked_user_id = {$data['id']})")->findAll();
+                            $friends = $friendModel->select('friends.user_id, friends.friend_id, users.*, friends.status')->join('users', "(friends.user_id = users.id and friends.user_id != {$data['id']}) or (friends.friend_id = users.id and friends.friend_id != {$data['id']})")->where(" (friend_id = {$data['id']} or user_id = {$data['id']} ) and `status` = 'accepted' and id not in (SELECT blocked_user_id FROM blocked_users WHERE user_id = {$data['id']}) and id not in (SELECT user_id FROM blocked_users WHERE blocked_user_id = {$data['id']})")->findAll();
 
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
@@ -1023,7 +1228,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "getOnline"
                                     ]));
                                 }
                             }
@@ -1046,6 +1253,7 @@ class Chat implements MessageComponentInterface
                             $messageForward = array();
 
                             $message = $messageModel->find($messageId);
+                            $sender = $userModel->find($senderId);
 
                             if (!isset($message)) {
                                 foreach ($this->clients as $client) {
@@ -1120,11 +1328,28 @@ class Chat implements MessageComponentInterface
                                 $userReceiver = $userModel->find($receiver);
 
 
+
+
+                                $group = $groupModel->find($messageForward['group_id']);
+                                if (isset($group) && $group['type'] == 'dou') {
+                                    $userInGroup = $groupMember->select('user_id')->where("group_id = {$messageForward['group_id']} AND user_id != {$data['senderId']}")->first();
+                                    $data['groupId'] = $userInGroup['user_id'];
+                                }
+
+                                if (isset($group) && $group['type'] == 'multi') {
+                                    $data['groupId'] = $group['id'];
+                                }
+
                                 foreach ($this->clients as $client) {
                                     if ($client->resourceId == (int)$userReceiver['connectid'] || $client == $from) {
                                         $client->send(json_encode([
                                             'event' => 'onNewMessage',
-                                            'groupId' => $messageForward['group_id'],
+                                            'groupName' => $group['name'],
+                                            'senderId' => $senderId,
+                                            'from' => $sender['fullname'],
+                                            'msg' => 'Vừa chuyển tiếp một tin nhắn cho bạn',
+                                            'groupId' => $data['groupId'],
+                                            'type' => $group['type'],
                                             'result' => true,
                                         ]));
                                     }
@@ -1159,11 +1384,27 @@ class Chat implements MessageComponentInterface
                                     if (isset($user))
                                         array_push($connectIds, $user['connectid']);
                                 }
+
+                                $group = $groupModel->find($messageForward['group_id']);
+                                if (isset($group) && $group['type'] == 'dou') {
+                                    $userInGroup = $groupMember->select('user_id')->where("group_id = {$messageForward['group_id']} AND user_id != {$data['senderId']}")->first();
+                                    $data['groupId'] = $userInGroup['user_id'];
+                                }
+
+                                if (isset($group) && $group['type'] == 'multi') {
+                                    $data['groupId'] = $group['id'];
+                                }
+
                                 foreach ($this->clients as $client) {
                                     if (in_array($client->resourceId, $connectIds)) {
                                         $client->send(json_encode([
                                             'event' => 'onNewMessage',
-                                            'groupId' => $messageForward['group_id'],
+                                            'senderId' => $senderId,
+                                            'groupName' => $group['name'],
+                                            'type' => $group['type'],
+                                            'from' => $sender['fullname'],
+                                            'msg' => 'Vừa chuyển tiếp một tin nhắn cho bạn',
+                                            'groupId' => $data['groupId'],
                                             'result' => true,
                                         ]));
                                     }
@@ -1182,7 +1423,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "forwardMessage"
                                     ]));
                                 }
                             }
@@ -1240,7 +1483,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "deleteMessage"
                                     ]));
                                 }
                             }
@@ -1281,7 +1526,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "deleteConversation"
                                     ]));
                                 }
                             }
@@ -1338,7 +1585,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "outGroup"
                                     ]));
                                 }
                             }
@@ -1404,7 +1653,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "addMemberToGroup"
                                     ]));
                                 }
                             }
@@ -1445,7 +1696,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "deleteGroup"
                                     ]));
                                 }
                             }
@@ -1483,7 +1736,9 @@ class Chat implements MessageComponentInterface
                             foreach ($this->clients as $client) {
                                 if ($from == $client) {
                                     $client->send(json_encode([
-                                        'event' => 'onError'
+                                        'event' => 'onError',
+                                        'e' => json_encode($e->getMessage()),
+                                        'case' => "unfriend"
                                     ]));
                                 }
                             }

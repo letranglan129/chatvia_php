@@ -4,7 +4,6 @@ namespace App\Libraries;
 
 class Ultis
 {
-
     public static function divideFullName($name)
     {
         if (is_string($name)) {

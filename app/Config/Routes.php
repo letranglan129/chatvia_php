@@ -40,10 +40,13 @@ $routes->post('/register', 'User::register', ['filter' =>  'noauth']);
 // $routes->get('/upload', 'Upload::index');
 // $routes->post('/upload', 'Upload::uploadImage');
 $routes->get('/user','User::search');
+$routes->get('/refreshToken', 'User::refreshToken');
 $routes->post('/user/changePassword', 'User::changePassword');
 $routes->post('/user/update', 'User::update');
 $routes->post('/user/updateAvatar', 'User::updateAvatar');
+$routes->post('/user/updateAvatarWithBase64', 'User::updateAvatarWithBase64');
 $routes->get('/logout', 'User::logout');
+$routes->get('/test', 'User::test');
 $routes->cli('server/start', 'Server::start');
 
 /*

@@ -1,7 +1,8 @@
 const pickerOptions = {
 	locale: 'vi',
 	onEmojiSelect: e => {
-		messageInput.innerHTML += `<img class="emoji-icon" src='https://projectertest.000webhostapp.com/emoji/${e.unified}.png' onError="this.onError=null;console.clear();this.src='https://twemoji.maxcdn.com/2/72x72/${e.unified}.png'"> `;
+		console.log(e)
+		messageInput.innerHTML += `${e.native} `;
 	},
 };
 const picker = new EmojiMart.Picker(pickerOptions);
@@ -40,8 +41,7 @@ const conn = new WebSocket(`ws://localhost:9001?id=${USER?.id}`);
 
 const swiper = new Swiper('.swiper', {
 	loop: true,
-
-	// If we need pagination
+	autoplay: true,
 	pagination: {
 		el: '.swiper-pagination',
 		clickable: true,
@@ -70,14 +70,19 @@ async function showAccountModal(id) {
 		success: function (data) {
 			let response = JSON.parse(data);
 
+			console.log(data);
+			console.log(response);
 			document.querySelector('#modal-account .avatar').innerHTML = response.avatar
 				? `<img src='${response.avatar}' alt='' >`
 				: `<span class='avatar-label bg-soft-success text-success fs-3 '>${compactName(
 						response.fullname,
 				  )}</span>`;
-			document.querySelector('#modal-account .name').innerHTML = response.fullname;
-			document.querySelector('#modal-account .email .email-content').innerHTML = response.email;
-			document.querySelector('#modal-account .phone .phone-content').innerHTML = response.phone;
+			if (document.querySelector('#modal-account .name'))
+				document.querySelector('#modal-account .name').innerHTML = response.fullname;
+			if (document.querySelector('#modal-account .email .email-content'))
+				document.querySelector('#modal-account .email .email-content').innerHTML = response.email;
+			if (document.querySelector('#modal-account .phone .phone-content'))
+				document.querySelector('#modal-account .phone .phone-content').innerHTML = response.phone;
 			var myModal = new bootstrap.Modal(document.getElementById('modal-account'), {
 				keyboard: false,
 			});
@@ -92,6 +97,16 @@ function cancelRequestAddFriend(friendId) {
 			command: 'cancelRequestAddFriend',
 			userId: USER?.id || -1,
 			friendId,
+		}),
+	);
+}
+
+function getMemberOfGroup() {
+	conn.send(
+		JSON.stringify({
+			groupId: activeChat?.type == 'dou' ? activeChat?.groupId : activeChat?.groupInfo?.id,
+			command: 'getMembersOfGroup',
+			userId: Number(USER?.id || -1),
 		}),
 	);
 }
@@ -143,12 +158,12 @@ function handleFileSelect(event, cb) {
 }
 
 function compactName(fullname) {
-	let nameArray = fullname.split(' ');
+	let nameArray = fullname.trim().split(' ');
 
 	if (nameArray.length >= 2) {
 		let lastName = nameArray[0];
 		let firstName = nameArray[nameArray.length - 1];
-		return lastName[0] + firstName[0];
+		return (lastName[0] || '') + (firstName[0] || '');
 	} else {
 		return fullname[0];
 	}
@@ -161,12 +176,12 @@ messageInput.addEventListener('keyup', function (e) {
 });
 
 messageInput.addEventListener('keydown', function (e) {
-	if (e.key == 'Enter' && messageInput.innerHTML.trim() != '') {
+	if (e.key == 'Enter' && messageInput?.innerHTML.trim() != '') {
 		conn.send(
 			JSON.stringify({
 				senderId: USER?.id || -1,
 				groupId: activeChat?.type == 'dou' ? activeChat?.groupId : activeChat?.groupInfo?.id,
-				msg: this.innerHTML,
+				msg: this.textContent,
 				command: 'sendMessage',
 			}),
 		);
@@ -229,6 +244,7 @@ function unfriend(userId, friendId) {
 			friendId,
 		}),
 	);
+
 	document.querySelector('#search-friends-button').click();
 }
 
@@ -360,7 +376,7 @@ function renderFriendList(el, list) {
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <!-- Avatar -->
-                                <div class="avatar me-4" onclick="showAccountModal(${friend?.id})" >
+                                <div class="avatar avatar-online me-4" onclick="showAccountModal(${friend?.id})" >
                                     ${
 										friend?.avatar
 											? `<img src="${friend?.avatar}" alt="" id="settingAvatarPreview">`
@@ -377,9 +393,6 @@ function renderFriendList(el, list) {
                                         <h5 class="text-truncate mb-0 me-auto">${friend.fullname}
                                         </h5>
                                     </div>
-                                    <div class="text-online">
-                                        <div class="text-truncate me-auto">Trực tuyến</div>
-                                    </div>
                                 </div>
                                 <!-- Content -->
 
@@ -390,22 +403,25 @@ function renderFriendList(el, list) {
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-right">
                                         <li>
-                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="startChatPrivate(${
-												USER?.id || -1
-											} ,${friend?.id})">Trò chuyện<i class="ri-message-2-line"></i></a>
+                                            <a class="dropdown-item d-flex align-items-center justify-content-between" 
+                                            onclick="startChatPrivate(${USER?.id || -1} ,${friend?.id})">
+                                                Trò chuyện
+                                                <i class="ri-message-2-line"></i>
+                                            </a>
                                         </li>
 										<li>
-                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="unfriend(${
-												USER?.id || -1
-											} ,${friend?.id})">Hủy kết bạn<i class="ri-user-unfollow-line"></i></a>
+                                            <a class="dropdown-item d-flex align-items-center justify-content-between" 
+                                            onclick="unfriend(${USER?.id || -1} ,${friend?.id})">
+                                                Hủy kết bạn
+                                                <i class="ri-user-unfollow-line"></i>
+                                            </a>
                                         </li>
                                         <li>
                                             <div class="dropdown-divider"></div>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="blockUser(${
-												friend?.id
-											})">Chặn<i class="ri-forbid-line"></i></a>
+                                            <a class="dropdown-item d-flex align-items-center justify-content-between" 
+                                            onclick="blockUser(${friend?.id})">Chặn<i class="ri-forbid-line"></i></a>
                                         </li>
                                     </ul>
                                 </div>
@@ -568,7 +584,7 @@ function renderFriendListCheckbox(el, list, name = 'user-checkbox', groupName = 
 									: friend?.friend_id) || friend?.id
 							}">
                                 <!-- Avatar -->
-                                <div class="avatar me-4">
+                                <div class="avatar avatar-online me-4">
                                     ${
 										friend?.avatar
 											? `<img src="${friend?.avatar}" alt="" id="settingAvatarPreview">`
@@ -790,7 +806,7 @@ function renderMessage(format, list) {
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${
 																item.id
-															}, ${item.group_id})" href="#">Xóa phía tôi
+															}, ${item.group_id})">Xóa phía tôi
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>
@@ -798,7 +814,7 @@ function renderMessage(format, list) {
 														${
 															Number(USER?.id || -1) == Number(list[0].sender_id)
 																? `<li>
-                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')" href="#">Xóa với mọi người
+                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')">Xóa với mọi người
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>`
@@ -855,14 +871,14 @@ function renderMessage(format, list) {
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${
 																item.id
-															}, ${item.group_id})"  href="#">Xóa phía tôi
+															}, ${item.group_id})" >Xóa phía tôi
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>
 														${
 															Number(USER?.id || -1) == Number(list[0].sender_id)
 																? `<li>
-                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')" href="#">Xóa với mọi người
+                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')">Xóa với mọi người
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>`
@@ -903,14 +919,14 @@ function renderMessage(format, list) {
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${
 																item.id
-															}, ${item.group_id})"  href="#">Xóa phía tôi
+															}, ${item.group_id})">Xóa phía tôi
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>
 														${
 															Number(USER?.id || -1) == Number(list[0].sender_id)
 																? `<li>
-                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')" href="#">Xóa với mọi người
+                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')">Xóa với mọi người
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>`
@@ -1129,7 +1145,9 @@ function renderChatInfo(info, type, files) {
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-right">
                                                 <li>
-                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${file?.href}">Tải xuống<i class="ri-download-line"></i></a>
+                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${
+														file?.href
+													}">Tải xuống<i class="ri-download-line"></i></a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -1211,122 +1229,9 @@ function renderChatInfo(info, type, files) {
 											: ''
 									}
                                </div>
-								<ul class="list-unstyled">
+								<ul class="list-unstyled" id="listMemberOfGroup">
                     <!-- Chat Link -->
-                    ${info?.members
-						.map(
-							friend => `
-                        <li class="card contact-item mb-3 user-card user-card-${friend?.id}">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <!-- Avatar -->
-                                <div class="avatar me-4" onclick="showAccountModal(${friend?.id})" >
-                                    ${
-										friend?.avatar
-											? `<img src="${friend?.avatar}" alt="" id="settingAvatarPreview">`
-											: `<span class="avatar-label bg-soft-primary text-primary">${compactName(
-													friend.fullname,
-											  )}</span>`
-									}
-									${
-										info?.owner == friend?.id
-											? `<span style="    position: absolute;
-												color: var(--bs-yellow);
-												background: rgba(0,0,0,0.3);
-												width: 20px;
-												height: 20px;
-												font-size: 12px;
-												display: flex;
-												align-items: center;
-												justify-content: center;
-												border-radius: 50%;
-												bottom: -3px;
-												left: 0px;">
-											<i class="ri-key-2-fill"></i>
-										</span>`
-											: ''
-									}
-                                </div>
-                                <!-- Avatar -->
-
-                                <!-- Content -->
-                                <div class="flex-grow-1 overflow-hidden">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <h5 class="text-truncate mb-0 me-auto">${friend.fullname} ${
-								friend?.id == USER?.id ? `(tôi)` : ''
-							}
-                                        </h5>
-                                    </div>
-                                    <div class="text-online">
-                                        <div class="text-truncate me-auto">Trực tuyến</div>
-                                    </div>
-                                </div>
-                                <!-- Content -->
-
-                                <!-- Dropdown -->
-                                ${
-									friend?.id != USER?.id
-										? `<div class="dropdown">
-                                    <button class="btn btn-icon btn-base btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-more-fill"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-right">
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="startChatPrivate(${
-												USER?.id || -1
-											}, ${friend.id})">Trò chuyện<i class="ri-message-2-line"></i></a>
-                                        </li>
-										${(function () {
-											switch (friend?.status) {
-												case 'pending':
-													return `<li>
-                                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" onClick="sendAddFriend(${friend.id})">Hủy yêu cầu kết bạn<i class="ri-user-unfollow-line"></i></a>
-                                                                </li>`;
-												case 'accepted':
-													return `<li>
-                                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" onClick="sendAddFriend(${friend.id})">Xóa bạn bè<i class="ri-user-shared-line"></i></a>
-                                                                </li>`;
-												default:
-													return `<li>
-                                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" onClick="sendAddFriend(${friend.id})">Thêm bạn bè<i class="ri-user-add-line"></i></a>
-                                                                </li>`;
-											}
-										})()}
-										${
-											info?.owner == USER?.id
-												? `
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="outGroup(${info?.id},${friend?.id})">Xóa khỏi nhóm<i class="ri-logout-box-r-line"></i></a>
-                                        </li>`
-												: ''
-										}
-										${
-											info?.owner == USER?.id
-												? `
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="setOwnerGroup(${info?.id},${friend?.id})">Đặt thành nhóm trưởng<i class="ri-logout-box-r-line"></i></a>
-                                        </li>`
-												: ''
-										}
-                                        <li>
-                                            <div class="dropdown-divider"></div>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="blockUser(${
-												friend?.id
-											})">Chặn<i class="ri-forbid-line"></i></a>
-                                        </li>
-                                    </ul>
-                                </div>`
-										: ''
-								}
-                                <!-- Dropdown -->
-                            </div>
-                        </div>
-                    </li>
-                        `,
-						)
-						.join('')}
+                    
                     <!-- Chat Link -->
                 </ul>
                             </li>`
@@ -1381,7 +1286,9 @@ function renderChatInfo(info, type, files) {
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-right">
                                                  <li>
-                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${file?.href}">Tải xuống<i class="ri-download-line"></i></a>
+                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${
+														file?.href
+													}">Tải xuống<i class="ri-download-line"></i></a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -1426,7 +1333,7 @@ function renderNotification(el, list) {
 					btn = `<div class='card-footer'>
 									<div class='row gx-4'>
 										<div class='col'>
-											<a href='#' onClick="cancelRequestAddFriend(${notify['from_id']})" class='btn btn-secondary btn-sm w-100'>Hủy</a>
+											<a onClick="cancelRequestAddFriend(${notify['from_id']})" class='btn btn-secondary btn-sm w-100'>Hủy</a>
 										</div>
 										<div class='col'>
 											<a onClick='acceptFriend(${notify['from_id']}, ${notify['user_id']}, ${notify['id']})' class='btn btn-primary btn-sm w-100'>Chấp nhận</a>
@@ -1610,6 +1517,9 @@ conn.onmessage = function (e) {
 				}),
 			);
 
+			if (activeChat?.type == 'multi') {
+				getMemberOfGroup();
+			}
 			document.querySelector('#search-friends-button').click();
 			break;
 		}
@@ -1620,10 +1530,14 @@ conn.onmessage = function (e) {
 					command: 'getFriends',
 				}),
 			);
+			
 			if (activeChat?.type == 'dou' && activeChat?.groupId == data?.groupId) {
 				startChatPrivate(activeChat?.sender?.id, activeChat?.receiver?.id);
 			}
 
+			if (activeChat?.type == 'multi') {
+				getMemberOfGroup();
+			}
 			document.querySelector('#search-friends-button').click();
 			break;
 		}
@@ -1673,6 +1587,9 @@ conn.onmessage = function (e) {
 				);
 			}
 
+			if (activeChat?.type == 'multi') {
+				getMemberOfGroup();
+			}
 			document.querySelector('#search-friends-button').click();
 			break;
 		}
@@ -1683,6 +1600,9 @@ conn.onmessage = function (e) {
 				type: data.status,
 			});
 
+			if (activeChat?.type == 'multi') {
+				getMemberOfGroup();
+			}
 			document.querySelector('#search-friends-button').click();
 			break;
 		}
@@ -1694,6 +1614,9 @@ conn.onmessage = function (e) {
 				}),
 			);
 
+			if (activeChat?.type == 'multi') {
+				getMemberOfGroup();
+			}
 			document.querySelector('#search-friends-button').click();
 			break;
 		}
@@ -1716,6 +1639,9 @@ conn.onmessage = function (e) {
 				}),
 			);
 
+			if (activeChat?.type == 'multi') {
+				getMemberOfGroup();
+			}
 			document.querySelector('#search-friends-button').click();
 			break;
 		}
@@ -1869,8 +1795,7 @@ conn.onmessage = function (e) {
 		case 'onGetOnline': {
 			data.friends.forEach(friend => {
 				document.querySelectorAll(`.user-card-${friend?.id}`).forEach(x => {
-					console.log(x)
-					if (friend.connectid !== '-1' && friend.connectid !== null) {
+					if (friend?.connectid !== '-1' && friend.connectid !== null) {
 						x.classList.add('online');
 					} else {
 						x.classList.remove('online');
@@ -1891,6 +1816,140 @@ conn.onmessage = function (e) {
 					}
 				});
 			}
+			break;
+		}
+
+		case 'onGetMembersOfGroup': {
+			document.querySelector('#listMemberOfGroup').innerHTML = `
+                ${data?.members
+					.map(
+						friend => `
+                        <li class="card contact-item mb-3 user-card user-card-${friend?.id}">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <!-- Avatar -->
+                                <div class="avatar avatar-online me-4" onclick="showAccountModal(${friend?.id})" >
+                                    ${
+										friend?.avatar
+											? `<img src="${friend?.avatar}" alt="" id="settingAvatarPreview">`
+											: `<span class="avatar-label bg-soft-primary text-primary">${compactName(
+													friend.fullname,
+											  )}</span>`
+									}
+									${
+										activeChat?.groupInfo?.owner == friend?.id
+											? `<span style="    position: absolute;
+												color: var(--bs-yellow);
+												background: rgba(0,0,0,0.3);
+												width: 20px;
+												height: 20px;
+												font-size: 12px;
+												display: flex;
+												align-items: center;
+												justify-content: center;
+												border-radius: 50%;
+												bottom: -3px;
+												left: 0px;">
+											<i class="ri-key-2-fill"></i>
+										</span>`
+											: ''
+									}
+                                </div>
+                                <!-- Avatar -->
+
+                                <!-- Content -->
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <h5 class="text-truncate mb-0 me-auto">${friend.fullname} ${
+							friend?.id == USER?.id ? `(tôi)` : ''
+						}
+                                        </h5>
+                                    </div>
+                                    <div class="text-online">
+                                        <div class="text-truncate me-auto">Trực tuyến</div>
+                                    </div>
+                                </div>
+                                <!-- Content -->
+
+                                <!-- Dropdown -->
+                                ${
+									friend?.id != USER?.id
+										? `<div class="dropdown">
+                                    <button class="btn btn-icon btn-base btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-more-fill"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-right">
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="startChatPrivate(${
+												USER?.id || -1
+											}, ${friend.id})">Trò chuyện<i class="ri-message-2-line"></i></a>
+                                        </li>
+										${(function () {
+											switch (friend?.status) {
+												case 'pending':
+													if (friend?.friend_id == friend?.id)
+														return `<li>
+																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="cancelRequestAddFriend(${friend.id})">Hủy yêu cầu kết bạn<i class="ri-edit-line"></i></a>
+															</li>`;
+													if (friend.user_id == friend?.id)
+														return `<li>
+																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="acceptFriend(${friend.user_id}, ${friend.friend_id})">Chấp nhận kết bạn<i class="ri-edit-line"></i></a>
+															</li><li>
+																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="cancelRequestAddFriend(${friend.id})">Từ chối kết bạn<i class="ri-edit-line"></i></a>
+															</li>`;
+												case 'accepted':
+													return `<li>
+																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="unfriend(${USER?.id || -1} ,${
+														friend.id
+													})">Hủy kết bạn<i class="ri-edit-line"></i></a>
+															</li>`;
+												default:
+													return `<li>
+                                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" onClick="sendAddFriend(${friend.id})">Thêm bạn bè<i class="ri-user-add-line"></i></a>
+                                                                </li>`;
+											}
+										})()}
+										${
+											activeChat?.groupInfo?.owner == USER?.id
+												? `
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="outGroup(${activeChat?.groupInfo?.id},${friend?.id})">Xóa khỏi nhóm<i class="ri-logout-box-r-line"></i></a>
+                                        </li>`
+												: ''
+										}
+										${
+											activeChat?.groupInfo?.owner == USER?.id
+												? `
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="setOwnerGroup(${activeChat?.groupInfo?.id},${friend?.id})">Đặt thành nhóm trưởng<i class="ri-logout-box-r-line"></i></a>
+                                        </li>`
+												: ''
+										}
+                                        <li>
+                                            <div class="dropdown-divider"></div>
+                                        </li>
+                                        ${
+											friend.blockBy == USER?.id
+												? `<li>
+                                                <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="unlockUser(${friend?.id})">Bỏ chặn<i class="ri-forbid-line"></i></a>
+                                            </li>`
+												: `<li>
+                                                <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="blockUser(${friend?.id})">Chặn<i class="ri-forbid-line"></i></a>
+                                            </li>`
+										}
+                                    </ul>
+                                </div>`
+										: ''
+								}
+                                <!-- Dropdown -->
+                            </div>
+                        </div>
+                    </li>
+                        `,
+					)
+					.join('')}
+            
+            `;
 			break;
 		}
 
@@ -1942,6 +2001,9 @@ conn.onmessage = function (e) {
 					}),
 				);
 			}
+
+			getMemberOfGroup();
+
 			getConversation();
 
 			renderMenuDropdownConversation(
@@ -2015,8 +2077,8 @@ conn.onmessage = function (e) {
 					type: 'error',
 				});
 			}
-			
-            getConversation();
+
+			getConversation();
 			break;
 		}
 
@@ -2034,7 +2096,7 @@ conn.onmessage = function (e) {
 				}
 			}
 
-			if(data.type == "all") {
+			if (data.type == 'all') {
 				document.querySelector('.main .chat').classList.add('d-none');
 			}
 
@@ -2050,10 +2112,10 @@ conn.onmessage = function (e) {
 
 		case 'onOutGroup': {
 			if (data.result) {
-				// showToast({
-				// 	text: `Đã rởi khỏi nhóm`,
-				// 	type: 'success',
-				// });
+				showToast({
+					text: `Đã rởi khỏi nhóm`,
+					type: 'success',
+				});
 			} else {
 				showToast({
 					text: `Đã xảy ra lỗi`,
@@ -2079,6 +2141,9 @@ conn.onmessage = function (e) {
 		case 'onAddMemberToGroup': {
 			getConversation();
 
+			if (activeChat?.type == 'multi') {
+				getMemberOfGroup();
+			}
 			if (activeChat?.type == 'multi' && activeChat?.groupInfo?.id == data?.groupId) {
 				startChatMulti(activeChat?.groupInfo?.id);
 			}
@@ -2104,7 +2169,7 @@ messageForm.onsubmit = function (e) {
 			JSON.stringify({
 				senderId: USER?.id || -1,
 				groupId: activeChat?.type == 'dou' ? activeChat?.groupId : activeChat?.groupInfo?.id,
-				msg: messageInput.innerHTML,
+				msg: messageInput.textContent,
 				command: 'sendMessage',
 			}),
 		);
@@ -2197,14 +2262,12 @@ createGroupForm.onsubmit = function (e) {
 	});
 
 	if (data['groupMember[]']?.length < 2 || !data['groupMember[]']) {
-		 showToast({
-            text: "Vui lòng chọn người cần thêm vào nhóm",
-            type: "error"
-        })
-        return
+		showToast({
+			text: 'Vui lòng chọn người cần thêm vào nhóm',
+			type: 'error',
+		});
+		return;
 	}
-
-	console.log({ ...data, command: 'createGroup', senderId: USER?.id || -1, fullname: USER?.fullname || '' });
 
 	if (e.target.elements['avatar-group-input'].files.length > 0) {
 		handleFileSelect({ target: e.target.elements['avatar-group-input'] }, file => {
@@ -2293,7 +2356,7 @@ searchForm.onsubmit = function (e) {
 													USER?.id
 												}, ${
 									friend.id
-								})" href="#">Trò chuyện<i class="ri-message-2-line"></i></a>
+								})">Trò chuyện<i class="ri-message-2-line"></i></a>
                                             </li>
                                             ${(function () {
 												if (friend.blocked_user_id == USER?.id || friend.blockBy == USER?.id)
@@ -2307,7 +2370,7 @@ searchForm.onsubmit = function (e) {
 															</li>`;
 														if (friend.user_id == friend?.id)
 															return `<li>
-																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="acceptFriend(${friend.user_id}, ${friend.friend_id})">Chấp nhận kết bạn<i class="ri-edit-line"></i></a>
+																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="acceptFriend(${friend.user_id}, ${friend.friend_id}, -1)">Chấp nhận kết bạn<i class="ri-edit-line"></i></a>
 															</li><li>
 																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="cancelRequestAddFriend(${friend.id})">Từ chối kết bạn<i class="ri-edit-line"></i></a>
 															</li>`;
@@ -2420,11 +2483,12 @@ document.querySelector('#forward-message-modal').addEventListener('show.bs.modal
 			const button = e.relatedTarget;
 			const id = button.dataset.id;
 
-			if(data.getAll('member[]').length == 0 && data.getAll('groupMember[]').length ==0) {
+			if (data.getAll('member[]').length == 0 && data.getAll('groupMember[]').length == 0) {
 				showToast({
-					text: "Vui lòng chọn người nhận",
-					type: "error"
-				})
+					text: 'Vui lòng chọn người nhận',
+					type: 'error',
+				});
+				return;
 			}
 
 			conn.send(
@@ -2443,29 +2507,28 @@ document.querySelector('#forward-message-modal').addEventListener('show.bs.modal
 		},
 	);
 
-	document.querySelector('#search-forward-user').addEventListener(
-        'input',
-        function (e) {
-            renderFriendListCheckbox(
-                document.querySelector('#forward-message-modal').querySelector('form[name="forwardMemberForm"]'),
-                Object.keys(friendList).map(title => {
-                    return {
-                        [title]: friendList[title].filter(x => x.fullname.toUpperCase().includes(e.target.value.toUpperCase()))
-                    }
-                })[0],
-                'forward-user-checkbox',
-                'member',
-            );
+	document.querySelector('#search-forward-user').addEventListener('input', function (e) {
+		renderFriendListCheckbox(
+			document.querySelector('#forward-message-modal').querySelector('form[name="forwardMemberForm"]'),
+			Object.keys(friendList).map(title => {
+				return {
+					[title]: friendList[title].filter(x =>
+						x.fullname.toUpperCase().includes(e.target.value.toUpperCase()),
+					),
+				};
+			})[0],
+			'forward-user-checkbox',
+			'member',
+		);
 
-            renderGroupListCheckbox(
-                document.querySelector('#forward-message-modal').querySelector('form[name="forwardMemberForm"]'),
-                groupConversation.filter(g => g.groupName.toUpperCase().includes(e.target.value.toUpperCase())),
-                'forward-group-checkbox',
-                'groupMember',
-                '+=',
-            );
-        },
-    );
+		renderGroupListCheckbox(
+			document.querySelector('#forward-message-modal').querySelector('form[name="forwardMemberForm"]'),
+			groupConversation.filter(g => g.groupName.toUpperCase().includes(e.target.value.toUpperCase())),
+			'forward-group-checkbox',
+			'groupMember',
+			'+=',
+		);
+	});
 });
 
 document.querySelector('#add-member-modal').addEventListener('show.bs.modal', function (e) {
@@ -2504,49 +2567,54 @@ document.querySelector('#add-member-modal').addEventListener('show.bs.modal', fu
 		'add-member',
 	);
 
-	document.querySelector('#submitAddMemberFormBtn').addEventListener('click', function () {
-		const data = new FormData(addMemberForm);
-if (data.getAll('add-member[]').length == 0) {
-	showToast({
-		text: 'Vui lòng chọn người cần thêm vào nhóm',
-		type: 'error',
-	});
-	return;
-}
+	document.querySelector('#submitAddMemberFormBtn').addEventListener(
+		'click',
+		function () {
+			const data = new FormData(addMemberForm);
 
+			if (data.getAll('add-member[]').length == 0) {
+				showToast({
+					text: 'Vui lòng chọn người cần thêm vào nhóm',
+					type: 'error',
+				});
+				return;
+			}
 
-		conn.send(
-			JSON.stringify({
-				command: 'addMemberToGroup',
-				members: data.getAll('add-member[]'),
-				groupId: activeChat?.groupInfo?.id || 0,
-			}),
+			conn.send(
+				JSON.stringify({
+					command: 'addMemberToGroup',
+					members: data.getAll('add-member[]'),
+					groupId: activeChat?.groupInfo?.id || 0,
+				}),
+			);
+		},
+		{
+			once: true,
+		},
+	);
+
+	document.querySelector('#search-add-members').addEventListener('input', function (e) {
+		renderFriendListCheckbox(
+			document.querySelector('#add-member-modal').querySelector('form[name="addMemberForm"]'),
+			friends
+				.filter(
+					friend =>
+						!memberIds.includes(friend.id) &&
+						friend.fullname.toUpperCase().includes(e.target.value.toUpperCase()),
+				)
+				.reduce((prev, cur) => {
+					let firstLetter = cur['fullname'][0].toUpperCase();
+					if (prev[firstLetter]) {
+						prev[firstLetter].push(cur);
+					} else {
+						prev[firstLetter] = [cur];
+					}
+					return prev;
+				}, {}),
+			'add-member-user-checkbox',
+			'add-member',
 		);
-	},{
-        once: true,
-    });
-
-	document.querySelector('#search-add-members').addEventListener(
-        'input',
-        function (e) {
-            renderFriendListCheckbox(
-                document.querySelector('#add-member-modal').querySelector('form[name="addMemberForm"]'),
-                friends
-                    .filter(friend => !memberIds.includes(friend.id) && friend.fullname.toUpperCase().includes(e.target.value.toUpperCase()))
-                    .reduce((prev, cur) => {
-                        let firstLetter = cur['fullname'][0].toUpperCase();
-                        if (prev[firstLetter]) {
-                            prev[firstLetter].push(cur);
-                        } else {
-                            prev[firstLetter] = [cur];
-                        }
-                        return prev;
-                    }, {}),
-                'add-member-user-checkbox',
-                'add-member',
-            );
-        },
-    );
+	});
 });
 
 updateAvatarInput.addEventListener('change', function (event) {

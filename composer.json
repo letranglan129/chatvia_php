@@ -9,7 +9,9 @@
 		"codeigniter4/framework": "^4.0",
 		"cboden/ratchet": "^0.4.4",
 		"cloudinary/cloudinary_php": "^2.10",
-		"kunalvarma05/dropbox-php-sdk": "^0.4.2"
+		"kunalvarma05/dropbox-php-sdk": "^0.4.2",
+		"firebase/php-jwt": "^6.4",
+		"guzzlehttp/guzzle": "^7.5"
 	},
 	"require-dev": {
 		"fakerphp/faker": "^1.9",

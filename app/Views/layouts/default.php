@@ -150,6 +150,7 @@ use App\Libraries\Session;
         const USER = JSON.parse('<?php echo (json_encode(Session::data('user'))) ?>')
     </script>
     <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.js"></script>
     <script src="./js/filesize.js"></script>
     <script src="./js/app.min.js"></script>
     <script src="./js/main.js"></script>
