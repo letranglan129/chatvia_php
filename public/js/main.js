@@ -902,7 +902,7 @@ function renderMessage(format, list) {
                                                     <i class="ri-download-line"></i>
                                                 </a>
                                                 <div>
-                                                    <h5 class="mb-0">${item.images[0].name}</h5>
+                                                    <h5 style="word-break: break-all;" class="mb-0">${item.images[0].name}</h5>
                                                 </div>
                                             </div>
                                         </div>
@@ -1145,7 +1145,7 @@ function renderChatInfo(info, type, files) {
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-right">
                                                 <li>
-                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${
+                                                    <a style="word-break: break-all;" target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${
 														file?.href
 													}">Tải xuống<i class="ri-download-line"></i></a>
                                                 </li>
@@ -1286,7 +1286,7 @@ function renderChatInfo(info, type, files) {
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-right">
                                                  <li>
-                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${
+                                                    <a style="word-break: break-all;" target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${
 														file?.href
 													}">Tải xuống<i class="ri-download-line"></i></a>
                                                 </li>
